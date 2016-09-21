@@ -25,14 +25,14 @@ def request_as_mobile(func):
     }
 
     def _add_cookie(session):
-        session.cookies.update({
+        _get_cookie_jar(session).update({
             'mobileClientVersion': '0 (2.1.3)',
             'mobileClient': 'android',
         })
 
     def _remove_cookie(session):
-        del session.cookies['mobileClientVersion']
-        del session.cookies['mobileClient']
+        del _get_cookie_jar(session)['mobileClientVersion']
+        del _get_cookie_jar(session)['mobileClient']
 
     async def _inner(self, *args, **kwargs):
         if not kwargs.get('headers'):
@@ -45,6 +45,13 @@ def request_as_mobile(func):
 
     return _inner
 
+def _get_cookie_jar(session):
+    try:
+        return session.cookies
+    except AttributeError:
+        # Name change in aiohttp:
+        # github.com/KeepSafe/aiohttp/commit/3ef4e3e1b3e
+        return session.cookie_jar
 
 class SessionBase(object):
     def __init__(self, loop=None):
@@ -57,18 +64,21 @@ class SessionBase(object):
                           'Chrome/45.0.2453.0 Safari/537.36'
         })
 
+    def _get_cookie_jar(self):
+        return _get_cookie_jar(self._session)
+
     def close(self):
         self._session.close()
 
     def clear(self):
-        self._session.cookies.clear()
+        self._get_cookie_jar().clear()
 
     def set_cookies(self, cookies):
-        self._session.cookies.update(cookies)
+        self._get_cookie_jar().update(cookies)
 
     def get_cookies(self, domain='steamcommunity.com'):
         ret = dict()
-        for cookie_name, cookie_value in self._session.cookies.items():
+        for cookie_name, cookie_value in self._get_cookie_jar().items():
             if isinstance(cookie_value, Morsel):
                 domain = cookie_value.get('domain')
                 value = cookie_value.value
