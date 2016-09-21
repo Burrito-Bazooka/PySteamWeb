@@ -9,12 +9,12 @@ from pysteamweb.plugins import *
 
 class SteamMixin(SteamMobileConfirmation, SteamWebBase):
     def on_need_guardian(self, kwargs, login_data):
-        kwargs['emailauth'] = input('Enter guardian code: ')
+        kwargs['emailauth'] = input('Enter Steam Guard email code: ')
         return kwargs
 
     def on_need_twofactor(self, kwargs, login_data):
         if not self.shared_secret:
-            raise ValueError('You dont have two_factor in script!')
+            raise ValueError('You don\'t have two_factor in script!')
         else:
             kwargs['twofactorcode'] = self.generate_auth_code(self.shared_secret)
         return kwargs
@@ -31,12 +31,12 @@ class SteamMixin(SteamMobileConfirmation, SteamWebBase):
                 print('add_phone', data)
 
                 if data.get('success'):
-                    data = await self.sms_phone(input('Enter sms code: '))
+                    data = await self.sms_phone(input('Enter SMS code: '))
                     print('sms_phone', data)
                 else:
-                    print('sms not send - invalid token or data')
+                    print('SMS not sent - invalid token or data')
             else:
-                print('phone not valid...')
+                print('Phone not valid...')
                 raise ValueError()
 
             has_phone = await self.has_phone()
@@ -52,13 +52,13 @@ class SteamMixin(SteamMobileConfirmation, SteamWebBase):
         if status == 1:
             self.config.save_config('2fa', data['response'])
             self.reload_two_factor_config()
-            is_finalize = await self.finalize_two_factor(data['response']['shared_secret'], input('sms code: '))
+            is_finalize = await self.finalize_two_factor(data['response']['shared_secret'], input('SMS code: '))
 
         if status == 29 or is_finalize:
             codes = await self.get_emergency_codes()
             print(codes)
             self.config.save_config('codes_backup', codes)
-            print('you have finalize_two_factor INSTALLED!')
+            print('You have finalize_two_factor INSTALLED!')
         elif is_finalize:
             print('finalize_two_factor DONE!')
         else:
@@ -70,8 +70,8 @@ async def main():
         username='<steam login>',
         password='<steam password>',
     ) as s:
-        print('logging success')
-        await s.init_two_factor('<phone number>')  # your phone like +48666555444
+        print('Login successful')
+        await s.init_two_factor('<phone number>')  # your phone number, like +48666555444
 
 
 if __name__ == '__main__':
