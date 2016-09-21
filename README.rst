@@ -5,7 +5,7 @@ Requirements
 * pyCrypto
 * aiohttp
 
-Instalation
+Installation
 ===========
 
 * pip3 install pysteamweb
@@ -20,10 +20,10 @@ Usage
     >>>
     >>> async def main():
     >>>     async with SteamWebBase(
-    >>>         username='<steam login>',
-    >>>         password='<steam password>',
+    >>>         username='<Steam login>',
+    >>>         password='<Steam password>',
     >>>     ) as s:
-    >>>         print('logging success')
+    >>>         print('login successful')
     >>>         print(await s.session.send_session(url='http://steamcommunity.com/profiles/{}/edit'.format(s.steam_id), is_post=False))
     >>>
     >>>
