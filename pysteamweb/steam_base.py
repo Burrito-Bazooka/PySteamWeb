@@ -25,14 +25,20 @@ def request_as_mobile(func):
     }
 
     def _add_cookie(session):
-        session.cookies.update({
+        _update_cookie_jar(session, {
             'mobileClientVersion': '0 (2.1.3)',
             'mobileClient': 'android',
         })
 
     def _remove_cookie(session):
-        del session.cookies['mobileClientVersion']
-        del session.cookies['mobileClient']
+        jar = _get_cookie_jar(session)
+        try:  # the version of aiohttp uses CookieJar and aren't dict-like mappings
+            del jar._cookies[""]['mobileClientVersion']
+            del jar._cookies[""]['mobileClient']
+        except AttributeError:  # earlier versions are dict-like mappings
+            del jar['mobileClientVersion']
+            del jar['mobileClient']
+
 
     async def _inner(self, *args, **kwargs):
         if not kwargs.get('headers'):
@@ -45,6 +51,28 @@ def request_as_mobile(func):
 
     return _inner
 
+def _get_cookie_jar(session):
+    try:
+        return session.cookies
+    except AttributeError:
+        # Name change in aiohttp:
+        # github.com/KeepSafe/aiohttp/commit/3ef4e3e1b3e
+        return session.cookie_jar
+
+def _update_cookie_jar(session, *args):
+    jar = _get_cookie_jar(session)
+    try:
+        jar.update_cookies(*args)
+    except AttributeError:
+        jar.update(*args)
+
+def _cookie_jar_items(session):
+    jar = _get_cookie_jar(session)
+    try:
+        return jar.items()
+    except AttributeError:
+        for cookie in jar:
+            yield cookie.key, cookie
 
 class SessionBase(object):
     def __init__(self, loop=None):
@@ -57,18 +85,21 @@ class SessionBase(object):
                           'Chrome/45.0.2453.0 Safari/537.36'
         })
 
+    def _get_cookie_jar(self):
+        return _get_cookie_jar(self._session)
+
     def close(self):
         self._session.close()
 
     def clear(self):
-        self._session.cookies.clear()
+        self._get_cookie_jar().clear()
 
     def set_cookies(self, cookies):
-        self._session.cookies.update(cookies)
+        _update_cookie_jar(self._session, cookies)
 
     def get_cookies(self, domain='steamcommunity.com'):
         ret = dict()
-        for cookie_name, cookie_value in self._session.cookies.items():
+        for cookie_name, cookie_value in _cookie_jar_items(self._session):
             if isinstance(cookie_value, Morsel):
                 domain = cookie_value.get('domain')
                 value = cookie_value.value
